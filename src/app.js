@@ -727,7 +727,7 @@ function startSessionClock() {
       updateRecordingUI(snapshot);
       const question = state.session.questions[state.session.index];
       const enforceLimit = question.cue || ["mock", "diagnostic"].includes(state.session.mode);
-      if (enforceLimit && snapshot.durationSeconds >= question.maxSeconds) processCurrentAnswer();
+      if (enforceLimit && snapshot.durationSeconds >= question.maxSeconds) finishSpeechAnswer();
     }
   }, 500);
 }
@@ -747,16 +747,7 @@ function updateRecordingUI(snapshot = {}) {
 async function toggleRecording() {
   if (state.busy) return;
   if (state.recording) {
-    state.recording = false;
-    speechCoach.stop();
-    updateRecordingUI(state.speechStats || speechCoach.snapshot());
-    // Allow the recogniser to deliver its final result, while blocking a second
-    // submit click that could otherwise save the same answer twice.
-    state.busy = true;
-    window.setTimeout(() => {
-      state.busy = false;
-      processCurrentAnswer();
-    }, 260);
+    finishSpeechAnswer();
     return;
   }
   const initialText = document.querySelector("#answer-text")?.value || "";
@@ -770,6 +761,20 @@ async function toggleRecording() {
     state.speechStats = speechCoach.snapshot();
     updateRecordingUI(state.speechStats);
   }
+}
+
+function finishSpeechAnswer() {
+  if (state.busy || !state.session) return;
+  state.recording = false;
+  speechCoach.stop();
+  updateRecordingUI(state.speechStats || speechCoach.snapshot());
+  // SpeechRecognition delivers the final result after stop() asynchronously.
+  // Wait briefly so the final words are included before scoring the answer.
+  state.busy = true;
+  window.setTimeout(() => {
+    state.busy = false;
+    processCurrentAnswer();
+  }, 260);
 }
 
 async function processCurrentAnswer(forceTyped = false) {
@@ -810,7 +815,14 @@ async function processCurrentAnswer(forceTyped = false) {
     inputMode,
     ...analysis,
   };
-  try { await addAttempt(attempt); } catch (error) { console.error(error); showToast("Could not save this answer locally, but the session can continue."); }
+  try {
+    await addAttempt(attempt);
+  } catch (error) {
+    console.error(error);
+    state.busy = false;
+    showToast("Could not save this answer locally. Please try submitting it again.");
+    return;
+  }
   state.attempts.push(attempt);
   session.analyses.push(analysis);
   session.attemptIds.push(attempt.id);
@@ -892,17 +904,29 @@ async function completeSession() {
     summary,
     scoringVersion: SCORING_VERSION,
   };
-  try { await addSession(record); } catch (error) { console.error(error); }
+  let persistenceWarning = false;
+  try {
+    await addSession(record);
+  } catch (error) {
+    console.error(error);
+    persistenceWarning = true;
+  }
   state.sessions.push(record);
   const day = currentDay();
   const completed = new Set(state.profile.completedDays || []);
   completed.add(day);
   state.profile.completedDays = [...completed].sort((a, b) => a - b);
-  await saveProfile(state.profile);
+  try {
+    await saveProfile(state.profile);
+  } catch (error) {
+    console.error(error);
+    persistenceWarning = true;
+  }
   state.result = record;
   state.session = null;
   state.view = "results";
   render();
+  if (persistenceWarning) showToast("Result shown, but local storage failed. Export this result before leaving the page.");
 }
 
 function renderResults() {

@@ -4,6 +4,8 @@ Luma is a zero-cost IELTS Speaking practice app that runs entirely in the browse
 
 No account, paid AI API, cloud database, or backend is required.
 
+Cloud accounts are optional. Without Supabase configuration, the app remains local-only. With the Supabase setup below, users can create accounts and sync their profile, transcripts, scores and session history across devices.
+
 ## Run it locally
 
 Requirements: Node.js 18 or newer and a recent desktop version of Chrome or Edge for the best speech-recognition support.
@@ -70,6 +72,22 @@ node --check src/app.js
 Import this folder/repository in Vercel and select **Other** as the framework preset. No build command and no environment variables are needed. The included `vercel.json` applies static security and microphone headers.
 
 Important: browser speech recognition support varies. HTTPS is required after deployment, which Vercel supplies automatically. Recognition in Chrome/Edge may use the browser vendor’s speech service; the app itself sends nothing to a Luma server. IndexedDB progress remains specific to that browser and device unless the learner exports it.
+
+## Optional cloud accounts
+
+1. Create a free project at [Supabase](https://supabase.com/).
+2. Open the Supabase SQL editor and run `supabase/schema.sql`.
+3. In Supabase Auth settings, configure the site URL and email confirmation settings for your Vercel domain.
+4. In Vercel project settings, add these environment variables for Production, Preview and Development:
+
+```text
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-public-key
+```
+
+5. Redeploy the project. Open **Settings → Cloud progress** in the app to create an account or sign in.
+
+The browser never receives a Supabase service-role key. Vercel API routes forward the signed-in user token, and Supabase row-level security restricts every record to its owner. Only saved profile, transcript and score data syncs; microphone audio is not uploaded by this application. `SUPABASE_ANON_KEY` is intended to be public, but database policies must remain enabled.
 
 ## Project structure
 

@@ -9,7 +9,7 @@
     "start": "node server.mjs",
     "test": "node --test",
     "calibrate": "node tests/calibration-report.mjs",
-    "check": "node --check src/app.js && node --check src/data.js && node --check src/db.js && node --check src/scoring.js && node --check src/speech.js"
+    "check": "node --check src/app.js && node --check src/cloud.js && node --check src/data.js && node --check src/db.js && node --check src/scoring.js && node --check src/speech.js && node --check api/auth.js && node --check api/sync.js"
   },
   "engines": {
     "node": ">=18"

@@ -22,6 +22,7 @@ import {
 } from "./db.js";
 import { SCORING_VERSION, analyzeResponse, combineSessionScores, createAdaptiveFollowUp, weakestCriterion } from "./scoring.js";
 import { SpeechCoach, speak, stopSpeaking } from "./speech.js";
+import { cloudSession, signIn, signOut, signUp, syncCloudData } from "./cloud.js";
 
 const app = document.querySelector("#app");
 const CRITERIA = ["fluency", "lexical", "grammar", "pronunciation"];
@@ -534,6 +535,7 @@ function renderBank() {
 
 function renderSettings() {
   const profile = state.profile;
+  const cloud = cloudSession();
   shell(`
     <div class="page">
       <div class="page-heading"><div><p class="eyebrow">Private by design</p><h1>Settings & sources</h1><p>Adjust your plan and see exactly what the coach uses as its public reference.</p></div></div>
@@ -554,6 +556,13 @@ function renderSettings() {
           <div class="toggle-row"><div class="toggle-copy"><strong>Authentic Part 2 timing</strong><span>Use 60 seconds preparation and cap speech at 2 minutes.</span></div><button class="toggle ${profile.strictTiming ? "on" : ""}" data-toggle-setting="strictTiming" aria-label="Toggle authentic Part 2 timing" aria-pressed="${profile.strictTiming}"><i></i></button></div>
           <div class="toggle-row"><div class="toggle-copy"><strong>Speech language</strong><span>Recognition and examiner voice.</span></div><select class="filter-select" id="speech-lang"><option value="en-GB" ${profile.lang === "en-GB" ? "selected" : ""}>English (UK)</option><option value="en-US" ${profile.lang === "en-US" ? "selected" : ""}>English (US)</option><option value="en-AU" ${profile.lang === "en-AU" ? "selected" : ""}>English (Australia)</option></select></div>
           <p class="micro-copy" style="margin-top:16px">Any English accent is accepted in IELTS. The language choice only helps your browser recognise and voice the conversation; it is not an accent target.</p>
+        </section>
+        <section class="card setting-card cloud-card">
+          <h3>Cloud progress</h3>
+          ${cloud?.access_token
+            ? `<p class="micro-copy">Signed in${cloud.user?.email ? ` as ${escapeHTML(cloud.user.email)}` : ""}. Your profile, answers and sessions can sync across devices.</p><div class="hero-actions"><button class="btn btn-primary" data-action="sync-cloud">Sync now</button><button class="btn btn-ghost" data-action="sign-out-cloud">Sign out</button></div>`
+            : `<p class="micro-copy">Create an account to back up your progress and use it across devices. Local mode still works without an account.</p><form id="cloud-auth-form" class="cloud-auth-form"><div class="field"><label for="cloud-email">Email</label><input id="cloud-email" name="email" type="email" autocomplete="email" required /></div><div class="field"><label for="cloud-password">Password</label><input id="cloud-password" name="password" type="password" minlength="8" autocomplete="new-password" required /></div><div class="hero-actions"><button class="btn btn-primary" type="submit">Sign in</button><button class="btn btn-ghost" type="button" data-cloud-signup>Create account</button></div></form>`}
+          <p class="micro-copy cloud-note">Cloud sync requires the Supabase setup described in README. Voice audio is not uploaded by this app; only saved profile, transcript and score records sync.</p>
         </section>
         <section class="card setting-card">
           <h3>Official public references</h3>
@@ -1059,6 +1068,41 @@ async function resetAllData() {
   render();
 }
 
+async function syncProgress() {
+  try {
+    const synced = await syncCloudData({ profile: state.profile, attempts: state.attempts, sessions: state.sessions });
+    state.profile = synced.profile || state.profile;
+    state.attempts = synced.attempts;
+    state.sessions = synced.sessions;
+    if (state.profile) await saveProfile(state.profile);
+    await Promise.all(state.attempts.map((attempt) => addAttempt(attempt)));
+    await Promise.all(state.sessions.map((session) => addSession(session)));
+    localStorage.setItem("lumaHasProfile", "1");
+    render();
+    showToast("Progress synced successfully.");
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Cloud sync failed. Check your Supabase setup.");
+  }
+}
+
+async function authenticateCloud(form, action) {
+  const data = new FormData(form);
+  const email = String(data.get("email") || "").trim();
+  const password = String(data.get("password") || "");
+  try {
+    const result = action === "signup" ? await signUp(email, password) : await signIn(email, password);
+    if (!result.access_token) {
+      showToast("Account created. Check your email to confirm it, then sign in.");
+      return;
+    }
+    await syncProgress();
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "Could not complete cloud authentication.");
+  }
+}
+
 function sendConversation() {
   if (state.busy) return;
   const textarea = document.querySelector("#answer-text");
@@ -1150,6 +1194,18 @@ app.addEventListener("click", async (event) => {
   if (action === "exit-session") return exitSession();
   if (action === "export-data") return exportProgress();
   if (action === "clear-data") return resetAllData();
+  if (action === "sync-cloud") return syncProgress();
+  if (action === "sign-out-cloud") {
+    signOut();
+    render();
+    showToast("Signed out. Local progress remains on this device.");
+    return;
+  }
+  if (button.dataset.cloudSignup) {
+    const form = document.querySelector("#cloud-auth-form");
+    if (form) await authenticateCloud(form, "signup");
+    return;
+  }
   if (button.dataset.toggleSetting) {
     const key = button.dataset.toggleSetting;
     state.profile[key] = !state.profile[key];
@@ -1193,6 +1249,7 @@ app.addEventListener("submit", async (event) => {
     render();
     showToast("Plan settings saved.");
   }
+  if (event.target.id === "cloud-auth-form") await authenticateCloud(event.target, "login");
 });
 
 app.addEventListener("input", (event) => {

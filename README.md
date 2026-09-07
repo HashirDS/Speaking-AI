@@ -29,7 +29,10 @@ The application itself has no npm dependencies. You can also serve the folder wi
 - 16 Part 1 sets and 18 cue-card sets, each linked to Part 3 questions
 - IndexedDB progress, session history, local transcripts, export, and reset
 - Typed fallback when browser speech recognition is unavailable
+- Free Talk room with Daily Conversation and IELTS Coach modes using local adaptive replies and browser voice
 - Responsive desktop/mobile UI and static Vercel configuration
+
+The Talk room is intentionally browser-only: it uses Web Speech recognition and speech synthesis, then selects contextual follow-ups locally. It does not call a generative AI model or require an API key. A true open-ended LLM assistant would require either a large model downloaded to the browser or a cloud provider key, along with the associated device, privacy and usage trade-offs.
 
 ## Accuracy and scoring boundary
 

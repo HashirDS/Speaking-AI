@@ -27,6 +27,7 @@ const app = document.querySelector("#app");
 const CRITERIA = ["fluency", "lexical", "grammar", "pronunciation"];
 const NAV_ITEMS = [
   ["dashboard", "Today", "⌂"],
+  ["conversation", "Talk", "◌"],
   ["practice", "Practice", "◉"],
   ["mock", "Mock test", "◷"],
   ["plan", "30-day plan", "◫"],
@@ -51,6 +52,8 @@ const state = {
   recordTimer: null,
   prepTimer: null,
   busy: false,
+  conversationMode: "daily",
+  conversationMessages: [],
 };
 
 const speechCoach = new SpeechCoach({
@@ -245,7 +248,7 @@ function sidebar() {
 }
 
 function mobileNav() {
-  const items = NAV_ITEMS.filter(([route]) => ["dashboard", "practice", "mock", "progress", "bank"].includes(route));
+  const items = NAV_ITEMS.filter(([route]) => ["dashboard", "conversation", "practice", "mock", "progress", "bank"].includes(route));
   return `<nav class="mobile-nav" aria-label="Mobile navigation">${items.map(([route, label, icon]) => `<button class="nav-item ${state.view === route ? "active" : ""}" data-route="${route}"><span class="nav-icon" aria-hidden="true">${icon}</span>${label}</button>`).join("")}</nav>`;
 }
 
@@ -325,6 +328,7 @@ function renderDashboard() {
           <section class="card card-pad">
             <div class="card-title-row"><h3>Quick practice</h3><span class="micro-copy">Unscripted, one focus at a time</span></div>
             <div class="quick-grid">
+              <button class="quick-card quick-card-featured" data-route="conversation"><span class="quick-icon">◌</span><strong>Talk with your coach</strong><span>Daily conversation or IELTS follow-ups</span></button>
               <button class="quick-card" data-start-session="part1"><span class="quick-icon">☕</span><strong>Part 1 interview</strong><span>Familiar topics · 4 questions</span></button>
               <button class="quick-card" data-start-session="part2"><span class="quick-icon">◫</span><strong>Cue card</strong><span>1 min prepare · up to 2 min speak</span></button>
               <button class="quick-card" data-start-session="part3"><span class="quick-icon">◇</span><strong>Part 3 discussion</strong><span>Abstract ideas · evidence and nuance</span></button>
@@ -358,6 +362,7 @@ function renderPractice() {
         <div><p class="eyebrow">Focused practice</p><h1>Choose the pressure</h1><p>Each mode uses fresh questions and adapts one follow-up to what you actually say.</p></div>
       </div>
       <div class="mode-grid">
+        <article class="card mode-card conversation-card" data-number="0"><span class="mode-tag">Free voice room</span><h3>Talk with your coach</h3><p>Have an open conversation about daily life or switch to IELTS-style practice with spoken follow-ups.</p><button class="btn btn-lime" data-route="conversation">Open conversation room →</button></article>
         <article class="card mode-card coral" data-number="1"><span class="mode-tag">4–5 minutes</span><h3>Part 1 interview</h3><p>Build concise, personal answers about familiar subjects. Train directness, tense control and natural extension.</p><button class="btn btn-primary" data-start-session="part1">Practise Part 1 →</button></article>
         <article class="card mode-card featured" data-number="2"><span class="mode-tag">1 + 2 minutes</span><h3>Part 2 long turn</h3><p>Receive a cue card, make four-anchor notes, then keep speaking naturally for up to two minutes.</p><button class="btn btn-lime" data-start-session="part2">Draw a cue card →</button></article>
         <article class="card mode-card" data-number="3"><span class="mode-tag">4–5 minutes</span><h3>Part 3 discussion</h3><p>Move beyond personal stories into causes, comparisons, consequences, exceptions and future change.</p><button class="btn btn-primary" data-start-session="part3">Practise Part 3 →</button></article>
@@ -370,6 +375,52 @@ function renderPractice() {
         <button class="quick-card" data-start-session="pronunciation"><span class="quick-icon">◖</span><strong>Pronunciation</strong><span>Train intelligibility, chunking, stress and pace.</span></button>
       </div>
     </div>`, "Practice");
+}
+
+function conversationReply(text, mode) {
+  const clean = text.trim().replace(/\s+/g, " ");
+  const words = clean.toLowerCase().match(/[a-z]+/g) || [];
+  const topics = ["work", "study", "family", "friend", "home", "travel", "food", "music", "book", "technology", "health", "future"];
+  const topic = topics.find((item) => words.includes(item));
+  if (mode === "ielts") {
+    const analysis = analyzeResponse({ text: clean, part: 3, inputMode: "typed" });
+    const priority = analysis.feedback.priorities[0];
+    const prompt = topic ? `You mentioned ${topic}. What is the main reason this matters, and can you give a specific example?` : "What is your main view, what is one reason for it, and what example supports your idea?";
+    return { text: prompt, feedback: priority };
+  }
+  const prompts = topic
+    ? [`That sounds interesting. What do you enjoy most about ${topic}?`, `How has ${topic} affected your everyday routine?`, `What would you like to change about ${topic}?`]
+    : ["Tell me a little more about that.", "What was the best part of that experience?", "How did that make you feel?", "What might you do next?"];
+  const prompt = prompts[words.length % prompts.length];
+  return { text: prompt, feedback: "Try answering with one clear idea, a reason, and a real detail from your life." };
+}
+
+function ensureConversation() {
+  if (state.conversationMessages.length) return;
+  state.conversationMessages.push({ role: "assistant", text: state.conversationMode === "ielts" ? "Welcome to IELTS Coach. Give me a natural answer, and I will ask a useful follow-up." : "Hi, I’m your conversation coach. Tell me about something from your day." });
+}
+
+function renderConversation() {
+  ensureConversation();
+  shell(`
+    <div class="page conversation-page">
+      <div class="page-heading">
+        <div><p class="eyebrow">Live voice practice</p><h1>Talk with your coach</h1><p>Free browser voice practice. Your speech stays in this browser; responses are generated from local conversation prompts.</p></div>
+      </div>
+      <section class="conversation-layout">
+        <div class="card conversation-card-main">
+          <div class="conversation-toolbar" role="group" aria-label="Conversation mode">
+            <button class="mode-switch ${state.conversationMode === "daily" ? "active" : ""}" data-conversation-mode="daily">Daily conversation</button>
+            <button class="mode-switch ${state.conversationMode === "ielts" ? "active" : ""}" data-conversation-mode="ielts">IELTS coach</button>
+          </div>
+          <div class="conversation-log" aria-live="polite">${state.conversationMessages.map((message) => `<div class="conversation-message ${message.role}"><span>${message.role === "assistant" ? "Coach" : "You"}</span><p>${escapeHTML(message.text)}</p>${message.feedback ? `<small>${escapeHTML(message.feedback)}</small>` : ""}</div>`).join("")}</div>
+          <textarea id="answer-text" class="answer-box conversation-input" placeholder="Speak, or type your message here…" aria-label="Your conversation message"></textarea>
+          <div class="conversation-actions"><button class="btn btn-coral" id="record-button" data-action="toggle-conversation-record">● Start speaking</button><button class="btn btn-primary" data-action="send-conversation">Send message</button><button class="btn btn-ghost" data-action="clear-conversation">New conversation</button></div>
+          <p class="voice-note">This free mode uses your browser’s speech recognition and voice. It is an adaptive practice coach, not a cloud generative AI model or official IELTS examiner.</p>
+        </div>
+        <aside class="card conversation-guide"><span class="insight-badge">How to improve</span><h3>${state.conversationMode === "ielts" ? "Answer like a speaker, not a script." : "Keep the conversation moving."}</h3><p>${state.conversationMode === "ielts" ? "Give a position, a reason, an example and a consequence. The coach will ask you to develop the idea." : "Use complete thoughts, ask questions back, and add one specific detail instead of stopping at a short answer."}</p></aside>
+      </section>
+    </div>`, "Talk");
 }
 
 function renderMock() {
@@ -520,6 +571,7 @@ function renderSettings() {
 
 function render() {
   if (!state.profile) return renderOnboarding();
+  if (state.view === "conversation") return renderConversation();
   if (state.view === "session") return renderSession();
   if (state.view === "results") return renderResults();
   if (state.view === "practice") return renderPractice();
@@ -1007,6 +1059,51 @@ async function resetAllData() {
   render();
 }
 
+function sendConversation() {
+  if (state.busy) return;
+  const textarea = document.querySelector("#answer-text");
+  const text = textarea?.value.trim() || state.speechStats?.transcript?.trim() || "";
+  if (!text) {
+    showToast("Say or type something to start the conversation.");
+    return;
+  }
+  state.conversationMessages.push({ role: "user", text });
+  const reply = conversationReply(text, state.conversationMode);
+  state.conversationMessages.push({ role: "assistant", text: reply.text, feedback: reply.feedback });
+  state.speechStats = null;
+  speechCoach.reset();
+  renderConversation();
+  speak(reply.text, { lang: state.profile.lang, enabled: state.profile.autoSpeak });
+}
+
+function finishConversationRecording() {
+  if (state.busy) return;
+  state.recording = false;
+  speechCoach.stop();
+  updateRecordingUI(state.speechStats || speechCoach.snapshot());
+  state.busy = true;
+  window.setTimeout(() => {
+    state.busy = false;
+    sendConversation();
+  }, 260);
+}
+
+function toggleConversationRecording() {
+  if (state.busy) return;
+  if (state.recording) {
+    finishConversationRecording();
+    return;
+  }
+  speechCoach.reset();
+  speechCoach.lang = state.profile.lang;
+  const started = speechCoach.start();
+  if (started) {
+    state.recording = true;
+    state.speechStats = speechCoach.snapshot();
+    updateRecordingUI(state.speechStats);
+  }
+}
+
 app.addEventListener("click", async (event) => {
   const button = event.target.closest("button, [data-route]");
   if (!button) return;
@@ -1014,16 +1111,36 @@ app.addEventListener("click", async (event) => {
   if (route) {
     stopSpeaking();
     clearTimers();
+    state.recording = false;
+    speechCoach.reset();
+    state.busy = false;
     state.view = route;
     render();
     window.scrollTo({ top: 0, behavior: "smooth" });
     return;
   }
   if (button.dataset.startSession) return startSession(button.dataset.startSession, button.dataset.topicId || null);
+  if (button.dataset.conversationMode) {
+    state.conversationMode = button.dataset.conversationMode;
+    state.conversationMessages = [];
+    state.recording = false;
+    speechCoach.reset();
+    renderConversation();
+    return;
+  }
   const action = button.dataset.action;
   if (action === "start-prep") return startPrep();
   if (action === "begin-answer") return beginAnswer();
   if (action === "toggle-record") return toggleRecording();
+  if (action === "toggle-conversation-record") return toggleConversationRecording();
+  if (action === "send-conversation") return sendConversation();
+  if (action === "clear-conversation") {
+    state.conversationMessages = [];
+    state.recording = false;
+    speechCoach.reset();
+    renderConversation();
+    return;
+  }
   if (action === "submit-typed") return processCurrentAnswer(true);
   if (action === "next-question") return nextQuestion();
   if (action === "retry-question") return retryQuestion();

@@ -52,6 +52,7 @@ const state = {
   bankType: "all",
   recordTimer: null,
   prepTimer: null,
+  conversationTimer: null,
   busy: false,
   conversationMode: "daily",
   conversationMessages: [],
@@ -415,9 +416,9 @@ function renderConversation() {
             <button class="mode-switch ${state.conversationMode === "ielts" ? "active" : ""}" data-conversation-mode="ielts">IELTS coach</button>
           </div>
           <div class="conversation-log" aria-live="polite">${state.conversationMessages.map((message) => `<div class="conversation-message ${message.role}"><span>${message.role === "assistant" ? "Coach" : "You"}</span><p>${escapeHTML(message.text)}</p>${message.feedback ? `<small>${escapeHTML(message.feedback)}</small>` : ""}</div>`).join("")}</div>
-          <textarea id="answer-text" class="answer-box conversation-input" placeholder="Speak, or type your message here…" aria-label="Your conversation message"></textarea>
-          <div class="conversation-actions"><button class="btn btn-coral" id="record-button" data-action="toggle-conversation-record">● Start speaking</button><button class="btn btn-primary" data-action="send-conversation">Send message</button><button class="btn btn-ghost" data-action="clear-conversation">New conversation</button></div>
-          <p class="voice-note">This free mode uses your browser’s speech recognition and voice. It is an adaptive practice coach, not a cloud generative AI model or official IELTS examiner.</p>
+          <div class="conversation-live-transcript" id="live-transcript" aria-live="polite">Press Start speaking, then talk naturally. It will submit after 10 seconds of silence.</div>
+          <div class="conversation-actions"><button class="btn btn-coral" id="record-button" data-action="toggle-conversation-record">● Start speaking</button><button class="btn btn-ghost" data-action="clear-conversation">New conversation</button></div>
+          <p class="voice-note">Voice-only practice uses your browser’s speech recognition and voice. Stop speaking for 10 seconds to submit your answer automatically.</p>
         </div>
         <aside class="card conversation-guide"><span class="insight-badge">How to improve</span><h3>${state.conversationMode === "ielts" ? "Answer like a speaker, not a script." : "Keep the conversation moving."}</h3><p>${state.conversationMode === "ielts" ? "Give a position, a reason, an example and a consequence. The coach will ask you to develop the idea." : "Use complete thoughts, ask questions back, and add one specific detail instead of stopping at a short answer."}</p></aside>
       </section>
@@ -793,16 +794,29 @@ function startSessionClock() {
   }, 500);
 }
 
+function startConversationSilenceTimer() {
+  window.clearInterval(state.conversationTimer);
+  state.conversationTimer = window.setInterval(() => {
+    if (state.view !== "conversation" || !state.recording) return;
+    const snapshot = speechCoach.snapshot();
+    state.speechStats = snapshot;
+    updateRecordingUI(snapshot);
+    if (snapshot.silenceSeconds >= 10) finishConversationRecording();
+  }, 500);
+}
+
 function updateRecordingUI(snapshot = {}) {
   const card = document.querySelector(".question-card");
   const button = document.querySelector("#record-button");
   const label = document.querySelector("#record-label");
   const time = document.querySelector("#record-time");
+  const liveTranscript = document.querySelector("#live-transcript");
   const question = state.session?.questions[state.session.index];
   card?.classList.toggle("recording", state.recording);
   if (button) button.textContent = state.recording ? "■ Finish answer" : "● Start speaking";
   if (label) label.textContent = state.recording ? "Listening… speak naturally" : snapshot.transcript ? "Transcript ready" : "Ready when you are";
   if (time) time.textContent = `${formatDuration(snapshot.durationSeconds || 0)}${question?.cue ? " / 2:00" : ""}`;
+  if (liveTranscript && snapshot.transcript) liveTranscript.textContent = snapshot.transcript;
 }
 
 async function toggleRecording() {
@@ -1019,8 +1033,10 @@ function renderResults() {
 function clearTimers() {
   window.clearInterval(state.recordTimer);
   window.clearInterval(state.prepTimer);
+  window.clearInterval(state.conversationTimer);
   state.recordTimer = null;
   state.prepTimer = null;
+  state.conversationTimer = null;
 }
 
 function exitSession() {
@@ -1105,8 +1121,7 @@ async function authenticateCloud(form, action) {
 
 function sendConversation() {
   if (state.busy) return;
-  const textarea = document.querySelector("#answer-text");
-  const text = textarea?.value.trim() || state.speechStats?.transcript?.trim() || "";
+  const text = state.speechStats?.transcript?.trim() || "";
   if (!text) {
     showToast("Say or type something to start the conversation.");
     return;
@@ -1123,6 +1138,8 @@ function sendConversation() {
 function finishConversationRecording() {
   if (state.busy) return;
   state.recording = false;
+  window.clearInterval(state.conversationTimer);
+  state.conversationTimer = null;
   speechCoach.stop();
   updateRecordingUI(state.speechStats || speechCoach.snapshot());
   state.busy = true;
@@ -1145,6 +1162,7 @@ function toggleConversationRecording() {
     state.recording = true;
     state.speechStats = speechCoach.snapshot();
     updateRecordingUI(state.speechStats);
+    startConversationSilenceTimer();
   }
 }
 

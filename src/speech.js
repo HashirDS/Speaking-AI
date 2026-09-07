@@ -120,6 +120,7 @@ export class SpeechCoach {
       finalTranscript: this.finalTranscript.trim(),
       confidence,
       durationSeconds: this.startedAt ? (Date.now() - this.startedAt) / 1000 : 0,
+      silenceSeconds: this.lastSpeechAt ? (Date.now() - this.lastSpeechAt) / 1000 : 0,
       pauseCount: this.pauseCount,
       restarts: this.restarts,
     };

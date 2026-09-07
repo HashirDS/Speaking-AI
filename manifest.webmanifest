@@ -1,0 +1,10 @@
+{
+  "name": "Luma IELTS Speaking Coach",
+  "short_name": "Luma IELTS",
+  "description": "Private IELTS Speaking practice with local progress tracking.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f1e9",
+  "theme_color": "#173c34",
+  "icons": []
+}

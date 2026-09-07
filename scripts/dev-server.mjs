@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { extname, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
+const root = resolve(fileURLToPath(new URL("../", import.meta.url)));
 const preferredPort = Number(process.argv[2] || process.env.PORT || 4173);
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -60,9 +60,7 @@ function startServer(port = preferredPort, attempts = 0) {
   const server = createServer(handleRequest);
   server.once("error", (error) => {
     if (error.code === "EADDRINUSE" && attempts < 20) {
-      const nextPort = port + 1;
-      console.warn(`Port ${port} is already in use. Trying ${nextPort}...`);
-      startServer(nextPort, attempts + 1);
+      startServer(port + 1, attempts + 1);
       return;
     }
     console.error(`Could not start Luma: ${error.message}`);

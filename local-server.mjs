@@ -24,8 +24,8 @@ const types = {
 };
 
 function handleRequest(request, response) {
-  if (!['GET', 'HEAD'].includes(request.method || 'GET')) {
-    response.writeHead(405, { Allow: 'GET, HEAD' }).end('Method Not Allowed');
+  if (!["GET", "HEAD"].includes(request.method || "GET")) {
+    response.writeHead(405, { Allow: "GET, HEAD" }).end("Method Not Allowed");
     return;
   }
   const url = new URL(request.url || "/", "http://localhost");
@@ -61,7 +61,7 @@ function startServer(port = preferredPort, attempts = 0) {
   server.once("error", (error) => {
     if (error.code === "EADDRINUSE" && attempts < 20) {
       const nextPort = port + 1;
-      console.warn(`Port ${port} is already in use. Trying ${nextPort}…`);
+      console.warn(`Port ${port} is already in use. Trying ${nextPort}...`);
       startServer(nextPort, attempts + 1);
       return;
     }

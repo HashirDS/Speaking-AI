@@ -100,6 +100,6 @@ src/db.js               IndexedDB persistence
 src/scoring.js          Explainable practice-estimate engine
 src/speech.js           Recognition and examiner speech
 tests/                  Data and scoring checks
-server.mjs              Dependency-free local server
+local-server.mjs        Dependency-free local server
 vercel.json             Static deployment configuration
 ```

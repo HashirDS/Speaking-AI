@@ -67,6 +67,12 @@ a { color: var(--ink-2); }
   color: var(--ink-3);
 }
 
+.boot-brand-name {
+  color: var(--ink);
+  font-size: .95rem;
+  letter-spacing: .02em;
+}
+
 .brand-mark {
   width: 42px;
   height: 42px;
@@ -148,6 +154,17 @@ a { color: var(--ink-2); }
   font-size: 1.12rem;
   letter-spacing: -.02em;
 }
+
+.result-brand {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-bottom: 38px;
+  color: #fff;
+  font-size: .8rem;
+}
+
+.result-brand .brand-mark { margin: 0; }
 
 .brand-lockup .brand-mark { background: rgba(255,255,255,.12); }
 
@@ -595,7 +612,7 @@ a { color: var(--ink-2); }
 .results-page { min-height: 100vh; padding: 28px; display: grid; place-content: center; }
 .results-card { width: min(1050px, calc(100vw - 40px)); overflow: hidden; display: grid; grid-template-columns: .75fr 1.25fr; box-shadow: var(--shadow); }
 .result-score-panel { padding: 48px 38px; background: var(--ink); color: white; text-align: center; }
-.result-score-panel .brand-mark { margin: 0 auto 38px; background: rgba(255,255,255,.1); }
+.result-score-panel .brand-mark { background: rgba(255,255,255,.1); }
 .result-score-panel > span { color: var(--lime); font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
 .big-band { margin: 13px 0; font-family: Georgia, serif; font-size: 7rem; font-weight: 500; line-height: .95; color: var(--lime); }
 .result-score-panel p { color: rgba(255,255,255,.62); font-size: .75rem; line-height: 1.55; }

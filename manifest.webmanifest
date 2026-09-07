@@ -6,5 +6,12 @@
   "display": "standalone",
   "background_color": "#f4f1e9",
   "theme_color": "#173c34",
-  "icons": []
+  "icons": [
+    {
+      "src": "/assets/hashir-data-scientist.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

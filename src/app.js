@@ -171,7 +171,7 @@ function renderOnboarding() {
       <section class="onboarding-story">
         <div class="brand-lockup">
           <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-          <span>Luma Speaking</span>
+          <span>Hashir Data Scientist</span>
         </div>
         <div class="story-copy">
           <p class="eyebrow">IELTS speaking, made human</p>
@@ -228,7 +228,7 @@ function sidebar() {
     <aside class="sidebar">
       <div class="brand-lockup">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-        <span>Luma Speaking</span>
+        <span>Hashir Data Scientist</span>
       </div>
       <nav class="sidebar-nav" aria-label="Main navigation">
         ${NAV_ITEMS.map(([route, label, icon]) => `<button class="nav-item ${state.view === route ? "active" : ""}" data-route="${route}"><span class="nav-icon" aria-hidden="true">${icon}</span>${label}</button>`).join("")}
@@ -652,7 +652,7 @@ function renderSession() {
   app.innerHTML = `
     <main class="session-page">
       <header class="session-topbar">
-        <div class="session-brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>Luma</div>
+        <div class="session-brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><span>Hashir Data Scientist</span></div>
         <div class="session-meta"><span class="session-chip mode-name">${escapeHTML(sessionLabel())}</span><span class="session-chip">${progress}</span><span class="session-chip" id="session-time">${formatDuration(elapsed)}</span><button class="session-exit" data-action="exit-session">Exit</button></div>
       </header>
       <section class="session-stage">
@@ -915,7 +915,7 @@ function renderResults() {
     <main class="results-page">
       <section class="card results-card">
         <div class="result-score-panel">
-          <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="result-brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div><strong>Hashir Data Scientist</strong></div>
           <span>${hasOverall ? "Practice estimate" : "Language evidence only"}</span><div class="big-band">${formatBand(summary.overall)}</div><strong>${hasOverall ? "Overall speaking band" : "Overall band unavailable"}</strong>
           <p>${range ? `Likely range: ${formatBand(range.low)}–${formatBand(range.high)}<br>` : ""}Evidence quality: ${escapeHTML(summary.reliability)}<br>${summary.totalWords} words · ${formatDuration(summary.totalSeconds)} recorded speech</p>
         </div>

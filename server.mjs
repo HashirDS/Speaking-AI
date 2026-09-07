@@ -5,6 +5,14 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const preferredPort = Number(process.argv[2] || process.env.PORT || 4173);
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "microphone=(self)",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "Content-Security-Policy": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'",
+};
 const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -37,8 +45,7 @@ function handleRequest(request, response) {
   response.writeHead(200, {
     "Content-Type": types[extname(file)] || "application/octet-stream",
     "Cache-Control": extname(file) === ".html" ? "no-cache" : "public, max-age=300",
-    "X-Content-Type-Options": "nosniff",
-    "Permissions-Policy": "microphone=(self)",
+    ...securityHeaders,
   });
   if (request.method === "HEAD") {
     response.end();

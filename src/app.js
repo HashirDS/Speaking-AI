@@ -1129,6 +1129,7 @@ app.addEventListener("click", async (event) => {
     return;
   }
   const action = button.dataset.action;
+  if (action === "reload-app") return location.reload();
   if (action === "start-prep") return startPrep();
   if (action === "begin-answer") return beginAnswer();
   if (action === "toggle-record") return toggleRecording();
@@ -1277,7 +1278,7 @@ async function init() {
     render();
   } catch (error) {
     console.error(error);
-    app.innerHTML = `<main class="boot-screen"><div class="brand-mark"><span></span><span></span><span></span></div><h1>Local storage is unavailable</h1><p>Please allow site storage or leave private browsing, then reload.</p><button class="btn btn-primary" onclick="location.reload()">Try again</button></main>`;
+    app.innerHTML = `<main class="boot-screen"><div class="brand-mark"><span></span><span></span><span></span></div><h1>Local storage is unavailable</h1><p>Please allow site storage or leave private browsing, then reload.</p><button class="btn btn-primary" data-action="reload-app">Try again</button></main>`;
   }
 }
 
